@@ -521,9 +521,12 @@ int main() {
         scanf("%d", &odabrana_opcija);
 
         switch(odabrana_opcija) {
-            case 1: najkraci_put(odabrani_graf);            break;
-            case 2: najkraci_put_medjustanice(odabrani_graf); break;
-            case 3: break;
+            case 1: najkraci_put(odabrani_graf);
+                    break;
+            case 2: najkraci_put_medjustanice(odabrani_graf);
+                    break;
+            case 3:
+                    break;
             default: printf("nevazeci izbor!\n");
         }
     }
