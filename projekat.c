@@ -4,15 +4,11 @@
 #include <limits.h>
 #include <time.h>
 
-/* ================================================
-   STRUKTURE
-   ================================================ */
-
 typedef struct cvor cvor;
 
 struct cvor {
-    int ime;        /* indeks susjeda */
-    int tezina;     /* tezina grane   */
+    int indeks_susjeda;
+    int tezina_grane;
     cvor* sledeci;
 };
 
@@ -25,135 +21,123 @@ typedef struct {
     float gustina;
     char naziv[60];
     char prefiks[20];
-    char** ime_cvora;       /* dinamicki niz imena cvorova */
-    lista_susjeda* susjedi; /* dinamicki niz listi susjeda */
+    char** ime_cvora;
+    lista_susjeda* susjedi;
 } graf;
 
-/* ================================================
-   JPL FUNKCIJE
-   ================================================ */
-
-cvor* kreiraj_cvor(int ime, int tezina) {
-    cvor* c = (cvor*)malloc(sizeof(cvor));
-    if(c == NULL) {
+cvor* kreiraj_cvor(int indeks_susjeda, int tezina_grane) {
+    cvor* novi_cvor = (cvor*)malloc(sizeof(cvor));
+    if(novi_cvor == NULL) {
         printf("neuspjesno kreiranje cvora!\n");
         exit(1);
     }
-    c->ime = ime;
-    c->tezina = tezina;
-    c->sledeci = NULL;
-    return c;
+    novi_cvor->indeks_susjeda = indeks_susjeda;
+    novi_cvor->tezina_grane = tezina_grane;
+    novi_cvor->sledeci = NULL;
+    return novi_cvor;
 }
 
-void dodaj_na_kraj(cvor** l, cvor* c) {
-    if(*l == NULL) {
-        *l = c;
+void dodaj_na_kraj(cvor** lista, cvor* novi_cvor) {
+    if(*lista == NULL) {
+        *lista = novi_cvor;
     } else {
-        cvor* p = *l;
-        while(p->sledeci != NULL)
-            p = p->sledeci;
-        p->sledeci = c;
+        cvor* trenutni = *lista;
+        while(trenutni->sledeci != NULL)
+            trenutni = trenutni->sledeci;
+        trenutni->sledeci = novi_cvor;
     }
 }
 
-int sadrzi_element(cvor* l, int e) {
-    while(l != NULL) {
-        if(l->ime == e)
+int sadrzi_element(cvor* lista, int trazeni_indeks) {
+    while(lista != NULL) {
+        if(lista->indeks_susjeda == trazeni_indeks)
             return 1;
-        l = l->sledeci;
+        lista = lista->sledeci;
     }
     return 0;
 }
 
-void obrisi_listu(cvor* l) {
-    cvor* p;
-    while(l != NULL) {
-        p = l;
-        l = l->sledeci;
-        free(p);
+void obrisi_listu(cvor* lista) {
+    cvor* pomocni;
+    while(lista != NULL) {
+        pomocni = lista;
+        lista = lista->sledeci;
+        free(pomocni);
     }
 }
 
-/* ================================================
-   KREIRANJE I BRISANJE GRAFA
-   ================================================ */
-
-graf* kreiraj_graf(const char* naziv, const char* prefiks, int n, float gustina) {
-    graf* g = (graf*)malloc(sizeof(graf));
-    if(g == NULL) {
+graf* kreiraj_graf(const char* naziv, const char* prefiks, int broj_cvorova, float gustina) {
+    graf* novi_graf = (graf*)malloc(sizeof(graf));
+    if(novi_graf == NULL) {
         printf("neuspjesno kreiranje grafa!\n");
         exit(1);
     }
 
-    strncpy(g->naziv, naziv, 59);
-    strncpy(g->prefiks, prefiks, 19);
-    g->broj_cvorova = n;
-    g->gustina = gustina;
+    strncpy(novi_graf->naziv, naziv, 59);
+    strncpy(novi_graf->prefiks, prefiks, 19);
+    novi_graf->broj_cvorova = broj_cvorova;
+    novi_graf->gustina = gustina;
 
-    /* dinamicki niz listi susjeda */
-    g->susjedi = (lista_susjeda*)malloc(n * sizeof(lista_susjeda));
-    if(g->susjedi == NULL) {
+    novi_graf->susjedi = (lista_susjeda*)malloc(broj_cvorova * sizeof(lista_susjeda));
+    if(novi_graf->susjedi == NULL) {
         printf("neuspjesna alokacija!\n");
         exit(1);
     }
-    for(int i = 0; i < n; i++)
-        g->susjedi[i].prvi = NULL;
+    for(int i = 0; i < broj_cvorova; i++)
+        novi_graf->susjedi[i].prvi = NULL;
 
-    /* dinamicki niz imena cvorova */
-    g->ime_cvora = (char**)malloc(n * sizeof(char*));
-    if(g->ime_cvora == NULL) {
+    novi_graf->ime_cvora = (char**)malloc(broj_cvorova * sizeof(char*));
+    if(novi_graf->ime_cvora == NULL) {
         printf("neuspjesna alokacija!\n");
         exit(1);
     }
-    for(int i = 0; i < n; i++) {
-        g->ime_cvora[i] = (char*)malloc(30 * sizeof(char));
-        if(n <= 26)
-            sprintf(g->ime_cvora[i], "%s %c", prefiks, 'A' + i);
+    for(int i = 0; i < broj_cvorova; i++) {
+        novi_graf->ime_cvora[i] = (char*)malloc(30 * sizeof(char));
+        if(broj_cvorova <= 26)
+            sprintf(novi_graf->ime_cvora[i], "%s %c", prefiks, 'A' + i);
         else
-            sprintf(g->ime_cvora[i], "%s %d", prefiks, i + 1);
+            sprintf(novi_graf->ime_cvora[i], "%s %d", prefiks, i + 1);
     }
 
-    return g;
+    return novi_graf;
 }
 
-void dodaj_granu(graf* g, int u, int v, int tezina) {
-    if(u < 0 || v < 0 || u >= g->broj_cvorova || v >= g->broj_cvorova)
+void dodaj_granu(graf* g, int polazni_cvor, int odredisni_cvor, int tezina_grane) {
+    if(polazni_cvor < 0 || odredisni_cvor < 0 || polazni_cvor >= g->broj_cvorova || odredisni_cvor >= g->broj_cvorova)
         return;
-    if(u == v)
+    if(polazni_cvor == odredisni_cvor)
         return;
-    if(sadrzi_element(g->susjedi[u].prvi, v))
+    if(sadrzi_element(g->susjedi[polazni_cvor].prvi, odredisni_cvor))
         return;
 
-    dodaj_na_kraj(&(g->susjedi[u].prvi), kreiraj_cvor(v, tezina));
-    dodaj_na_kraj(&(g->susjedi[v].prvi), kreiraj_cvor(u, tezina));
+    dodaj_na_kraj(&(g->susjedi[polazni_cvor].prvi), kreiraj_cvor(odredisni_cvor, tezina_grane));
+    dodaj_na_kraj(&(g->susjedi[odredisni_cvor].prvi), kreiraj_cvor(polazni_cvor, tezina_grane));
 }
 
 void generisi_grane(graf* g) {
-    int n = g->broj_cvorova;
+    int broj_cvorova = g->broj_cvorova;
 
-    srand((unsigned)(g->naziv[0] * 31u + n + (unsigned)(g->gustina * 100)));
+    srand((unsigned)(g->naziv[0] * 31u + broj_cvorova + (unsigned)(g->gustina * 100)));
 
-    /* lanac koji osigurava da je graf bar djelimicno povezan */
-    for(int i = 0; i < n - 1; i++)
+    for(int i = 0; i < broj_cvorova - 1; i++)
         dodaj_granu(g, i, i + 1, rand() % 50 + 1);
 
-    /* dodatne nasumicne grane prema gustini */
-    long long ciljano = (long long)(g->gustina * n * (n - 1) / 2);
-    if(ciljano > (long long)n * 15)
-        ciljano = (long long)n * 15;
+    long long ciljani_broj_grana = (long long)(g->gustina * broj_cvorova * (broj_cvorova - 1) / 2);
+    if(ciljani_broj_grana > (long long)broj_cvorova * 15)
+        ciljani_broj_grana = (long long)broj_cvorova * 15;
 
-    long long dodato = n - 1;
-    long long pokusaj = 0;
-    long long limit = ciljano * 20;
+    long long broj_dodatih_grana = broj_cvorova - 1;
+    long long broj_pokusaja = 0;
+    long long maksimalni_pokusaji = ciljani_broj_grana * 20;
 
-    while(dodato < ciljano && pokusaj < limit) {
-        int u = rand() % n;
-        int v = rand() % n;
-        pokusaj++;
-        if(u == v) continue;
-        if(!sadrzi_element(g->susjedi[u].prvi, v)) {
-            dodaj_granu(g, u, v, rand() % 50 + 1);
-            dodato++;
+    while(broj_dodatih_grana < ciljani_broj_grana && broj_pokusaja < maksimalni_pokusaji) {
+        int polazni_cvor = rand() % broj_cvorova;
+        int odredisni_cvor = rand() % broj_cvorova;
+        broj_pokusaja++;
+        if(polazni_cvor == odredisni_cvor) continue;
+        if(!sadrzi_element(g->susjedi[polazni_cvor].prvi, odredisni_cvor)) {
+            dodaj_granu(g, polazni_cvor, odredisni_cvor, rand() % 50 + 1);
+            broj_dodatih_grana++;
         }
     }
 }
@@ -168,251 +152,223 @@ void obrisi_graf(graf* g) {
     free(g);
 }
 
-/* ================================================
-   DIJKSTRA
-   ================================================ */
+void dijkstra(graf* g, int polazni_cvor, int* udaljenosti, int* prethodni) {
+    int broj_cvorova = g->broj_cvorova;
+    int* posjecen = (int*)calloc(broj_cvorova, sizeof(int));
 
-void dijkstra(graf* g, int start, int* dist, int* preth) {
-    int n = g->broj_cvorova;
-    int* posjecen = (int*)calloc(n, sizeof(int));
-
-    for(int i = 0; i < n; i++) {
-        dist[i] = INT_MAX;
-        preth[i] = -1;
+    for(int i = 0; i < broj_cvorova; i++) {
+        udaljenosti[i] = INT_MAX;
+        prethodni[i] = -1;
     }
-    dist[start] = 0;
+    udaljenosti[polazni_cvor] = 0;
 
-    for(int korak = 0; korak < n; korak++) {
-        /* trazimo neposjeceni cvor sa najmanjom distancom */
-        int u = -1;
-        for(int i = 0; i < n; i++) {
-            if(!posjecen[i] && dist[i] != INT_MAX)
-                if(u == -1 || dist[i] < dist[u])
-                    u = i;
+    for(int i = 0; i < broj_cvorova; i++) {
+        int trenutni_cvor = -1;
+        for(int j = 0; j < broj_cvorova; j++) {
+            if(!posjecen[j] && udaljenosti[j] != INT_MAX)
+                if(trenutni_cvor == -1 || udaljenosti[j] < udaljenosti[trenutni_cvor])
+                    trenutni_cvor = j;
         }
-        if(u == -1) break;
-        posjecen[u] = 1;
+        if(trenutni_cvor == -1) break;
+        posjecen[trenutni_cvor] = 1;
 
-        /* prolazimo kroz listu susjeda cvora u */
-        cvor* p = g->susjedi[u].prvi;
-        while(p != NULL) {
-            int v = p->ime;
-            int w = p->tezina;
-            if(!posjecen[v] && dist[u] != INT_MAX && dist[u] + w < dist[v]) {
-                dist[v] = dist[u] + w;
-                preth[v] = u;
+        cvor* susjedni_cvor = g->susjedi[trenutni_cvor].prvi;
+        while(susjedni_cvor != NULL) {
+            int indeks_susjeda = susjedni_cvor->indeks_susjeda;
+            int tezina_grane = susjedni_cvor->tezina_grane;
+            if(!posjecen[indeks_susjeda] && udaljenosti[trenutni_cvor] != INT_MAX && udaljenosti[trenutni_cvor] + tezina_grane < udaljenosti[indeks_susjeda]) {
+                udaljenosti[indeks_susjeda] = udaljenosti[trenutni_cvor] + tezina_grane;
+                prethodni[indeks_susjeda] = trenutni_cvor;
             }
-            p = p->sledeci;
+            susjedni_cvor = susjedni_cvor->sledeci;
         }
     }
 
     free(posjecen);
 }
 
-/* ================================================
-   REKONSTRUKCIJA PUTA
-   ================================================ */
+int rekonstruisi_put(int* prethodni, int odredisni_cvor, int* put) {
+    int duzina_puta = 0;
+    for(int trenutni = odredisni_cvor; trenutni != -1; trenutni = prethodni[trenutni])
+        put[duzina_puta++] = trenutni;
 
-int rekonstruisi_put(int* preth, int cilj, int* put) {
-    int d = 0;
-    for(int c = cilj; c != -1; c = preth[c])
-        put[d++] = c;
-
-    /* obrnemo niz */
-    for(int l = 0, r = d - 1; l < r; l++, r--) {
-        int tmp = put[l];
-        put[l] = put[r];
-        put[r] = tmp;
+    for(int i = 0, j = duzina_puta - 1; i < j; i++, j--) {
+        int pomocna_vrijednost = put[i];
+        put[i] = put[j];
+        put[j] = pomocna_vrijednost;
     }
-    return d;
+    return duzina_puta;
 }
 
-/* ================================================
-   DIO 2: NAJKRACI PUT A -> B
-   ================================================ */
-
 void najkraci_put(graf* g) {
-    int n = g->broj_cvorova;
+    int broj_cvorova = g->broj_cvorova;
 
-    int prikazi = n < 40 ? n : 40;
-    printf("\nlokacije (prvih %d od %d):\n", prikazi, n);
-    for(int i = 0; i < prikazi; i++)
+    int broj_za_prikaz = broj_cvorova < 40 ? broj_cvorova : 40;
+    printf("\nlokacije (prvih %d od %d):\n", broj_za_prikaz, broj_cvorova);
+    for(int i = 0; i < broj_za_prikaz; i++)
         printf("  [%3d] %s\n", i + 1, g->ime_cvora[i]);
-    if(n > 40)
-        printf("  ... unesite broj direktno (1-%d)\n", n);
+    if(broj_cvorova > 40)
+        printf("  ... unesite broj direktno (1-%d)\n", broj_cvorova);
 
-    int start, cilj;
-    printf("\npocetna lokacija (1-%d): ", n); scanf("%d", &start); start--;
-    printf("krajnja lokacija  (1-%d): ", n); scanf("%d", &cilj);  cilj--;
+    int polazna_lokacija, odredisna_lokacija;
+    printf("\npocetna lokacija (1-%d): ", broj_cvorova); scanf("%d", &polazna_lokacija); polazna_lokacija--;
+    printf("krajnja lokacija  (1-%d): ", broj_cvorova); scanf("%d", &odredisna_lokacija);  odredisna_lokacija--;
 
-    if(start < 0 || start >= n || cilj < 0 || cilj >= n) {
+    if(polazna_lokacija < 0 || polazna_lokacija >= broj_cvorova || odredisna_lokacija < 0 || odredisna_lokacija >= broj_cvorova) {
         printf("nevazeci unos!\n");
         return;
     }
-    if(start == cilj) {
-        printf("vec ste na odredistu: %s\n", g->ime_cvora[start]);
+    if(polazna_lokacija == odredisna_lokacija) {
+        printf("vec ste na odredistu: %s\n", g->ime_cvora[polazna_lokacija]);
         return;
     }
 
-    int* dist = (int*)malloc(n * sizeof(int));
-    int* preth = (int*)malloc(n * sizeof(int));
-    int* put   = (int*)malloc(n * sizeof(int));
+    int* udaljenosti = (int*)malloc(broj_cvorova * sizeof(int));
+    int* prethodni   = (int*)malloc(broj_cvorova * sizeof(int));
+    int* put         = (int*)malloc(broj_cvorova * sizeof(int));
 
-    clock_t t1 = clock();
-    dijkstra(g, start, dist, preth);
-    clock_t t2 = clock();
+    clock_t pocetak_mjerenja = clock();
+    dijkstra(g, polazna_lokacija, udaljenosti, prethodni);
+    clock_t kraj_mjerenja = clock();
 
     printf("\n--- rezultat ---\n");
-    if(dist[cilj] == INT_MAX) {
-        printf("ne postoji put od %s do %s!\n", g->ime_cvora[start], g->ime_cvora[cilj]);
+    if(udaljenosti[odredisna_lokacija] == INT_MAX) {
+        printf("ne postoji put od %s do %s!\n", g->ime_cvora[polazna_lokacija], g->ime_cvora[odredisna_lokacija]);
     } else {
-        int d = rekonstruisi_put(preth, cilj, put);
+        int duzina_puta = rekonstruisi_put(prethodni, odredisna_lokacija, put);
         printf("najkraci put: ");
-        for(int i = 0; i < d; i++) {
+        for(int i = 0; i < duzina_puta; i++) {
             printf("%s", g->ime_cvora[put[i]]);
-            if(i < d - 1) printf(" -> ");
+            if(i < duzina_puta - 1) printf(" -> ");
         }
-        printf("\nukupna udaljenost : %d\n", dist[cilj]);
-        printf("broj koraka       : %d\n", d - 1);
+        printf("\nukupna udaljenost : %d\n", udaljenosti[odredisna_lokacija]);
+        printf("broj koraka       : %d\n", duzina_puta - 1);
     }
-    printf("vrijeme (dijkstra) : %.4f ms\n", 1000.0 * (t2 - t1) / CLOCKS_PER_SEC);
+    printf("vrijeme (dijkstra) : %.4f ms\n", 1000.0 * (kraj_mjerenja - pocetak_mjerenja) / CLOCKS_PER_SEC);
 
-    free(dist);
-    free(preth);
+    free(udaljenosti);
+    free(prethodni);
     free(put);
 }
 
-/* ================================================
-   DIO 2: NAJKRACI PUT S MEDUSTANICAMA
-   ================================================ */
+void najkraci_put_medjustanice(graf* g) {
+    int broj_cvorova = g->broj_cvorova;
 
-void najkraci_put_medustanice(graf* g) {
-    int n = g->broj_cvorova;
-
-    int prikazi = n < 40 ? n : 40;
-    printf("\nlokacije (prvih %d od %d):\n", prikazi, n);
-    for(int i = 0; i < prikazi; i++)
+    int broj_za_prikaz = broj_cvorova < 40 ? broj_cvorova : 40;
+    printf("\nlokacije (prvih %d od %d):\n", broj_za_prikaz, broj_cvorova);
+    for(int i = 0; i < broj_za_prikaz; i++)
         printf("  [%3d] %s\n", i + 1, g->ime_cvora[i]);
-    if(n > 40)
-        printf("  ... unesite broj direktno (1-%d)\n", n);
+    if(broj_cvorova > 40)
+        printf("  ... unesite broj direktno (1-%d)\n", broj_cvorova);
 
-    int start, cilj;
-    printf("\npocetna lokacija (1-%d): ", n); scanf("%d", &start); start--;
-    printf("krajnja lokacija  (1-%d): ", n); scanf("%d", &cilj);  cilj--;
+    int polazna_lokacija, odredisna_lokacija;
+    printf("\npocetna lokacija (1-%d): ", broj_cvorova); scanf("%d", &polazna_lokacija); polazna_lokacija--;
+    printf("krajnja lokacija  (1-%d): ", broj_cvorova); scanf("%d", &odredisna_lokacija);  odredisna_lokacija--;
 
-    if(start < 0 || start >= n || cilj < 0 || cilj >= n) {
+    if(polazna_lokacija < 0 || polazna_lokacija >= broj_cvorova || odredisna_lokacija < 0 || odredisna_lokacija >= broj_cvorova) {
         printf("nevazeci unos!\n");
         return;
     }
 
-    int bm;
-    printf("koliko obaveznih medustanica? (0-10): ");
-    scanf("%d", &bm);
-    if(bm < 0 || bm > 10) {
-        printf("nevazeci unos! broj medustanica mora biti izmedju 0 i 10.\n");
+    int broj_medjustanica;
+    printf("koliko obaveznih medjustanica? (0-10): ");
+    scanf("%d", &broj_medjustanica);
+    if(broj_medjustanica < 0 || broj_medjustanica > 10) {
+        printf("nevazeci unos! broj medjustanica mora biti izmedju 0 i 10.\n");
         return;
     }
 
-    int medustanice[10];
-    for(int i = 0; i < bm; i++) {
-        printf("  medustanica %d (1-%d): ", i + 1, n);
-        scanf("%d", &medustanice[i]);
-        medustanice[i]--;
-        if(medustanice[i] < 0 || medustanice[i] >= n) {
+    int medjustanice[10];
+    for(int i = 0; i < broj_medjustanica; i++) {
+        printf("  medjustanica %d (1-%d): ", i + 1, broj_cvorova);
+        scanf("%d", &medjustanice[i]);
+        medjustanice[i]--;
+        if(medjustanice[i] < 0 || medjustanice[i] >= broj_cvorova) {
             printf("nevazeci unos!\n");
             return;
         }
     }
 
-    /* niz svih tacaka: start -> ms0 -> ms1 -> ... -> cilj */
-    int tocke[12], bt = 0;
-    tocke[bt++] = start;
-    for(int i = 0; i < bm; i++) tocke[bt++] = medustanice[i];
-    tocke[bt++] = cilj;
+    int sve_tacke[12], broj_tacaka = 0;
+    sve_tacke[broj_tacaka++] = polazna_lokacija;
+    for(int i = 0; i < broj_medjustanica; i++) sve_tacke[broj_tacaka++] = medjustanice[i];
+    sve_tacke[broj_tacaka++] = odredisna_lokacija;
 
-    int* dist = (int*)malloc(n * sizeof(int));
-    int* preth = (int*)malloc(n * sizeof(int));
-    int* put   = (int*)malloc(n * sizeof(int));
+    int* udaljenosti  = (int*)malloc(broj_cvorova * sizeof(int));
+    int* prethodni    = (int*)malloc(broj_cvorova * sizeof(int));
+    int* put          = (int*)malloc(broj_cvorova * sizeof(int));
 
-    /* svaki segment cuvamo u posebnom nizu kako bismo
-       prvo provjerili postoji li cijeli put, pa tek onda ispisali */
-    int* svi_putevi  = (int*)malloc(bt * n * sizeof(int));
-    int* duzine      = (int*)malloc(bt * sizeof(int));
-    int* udaljenosti = (int*)malloc(bt * sizeof(int));
+    int* svi_putevi        = (int*)malloc(broj_tacaka * broj_cvorova * sizeof(int));
+    int* duzine_segmenata  = (int*)malloc(broj_tacaka * sizeof(int));
+    int* udaljenosti_segmenata = (int*)malloc(broj_tacaka * sizeof(int));
 
-    int ukupno = 0;
-    int postoji = 1;
+    int ukupna_udaljenost = 0;
+    int put_postoji = 1;
 
-    clock_t t1 = clock();
+    clock_t pocetak_mjerenja = clock();
 
-    for(int seg = 0; seg < bt - 1; seg++) {
-        int od  = tocke[seg];
-        int do_ = tocke[seg + 1];
+    for(int i = 0; i < broj_tacaka - 1; i++) {
+        int od  = sve_tacke[i];
+        int do_ = sve_tacke[i + 1];
 
-        dijkstra(g, od, dist, preth);
+        dijkstra(g, od, udaljenosti, prethodni);
 
-        if(dist[do_] == INT_MAX) {
-            postoji = 0;
+        if(udaljenosti[do_] == INT_MAX) {
+            put_postoji = 0;
             break;
         }
 
-        udaljenosti[seg] = dist[do_];
-        ukupno += dist[do_];
-        duzine[seg] = rekonstruisi_put(preth, do_, svi_putevi + seg * n);
+        udaljenosti_segmenata[i] = udaljenosti[do_];
+        ukupna_udaljenost += udaljenosti[do_];
+        duzine_segmenata[i] = rekonstruisi_put(prethodni, do_, svi_putevi + i * broj_cvorova);
     }
 
-    clock_t t2 = clock();
+    clock_t kraj_mjerenja = clock();
 
     printf("\n--- rezultat ---\n");
 
-    if(!postoji) {
+    if(!put_postoji) {
         printf("ne postoji put koji prolazi kroz sve odabrane lokacije!\n");
     } else {
-        printf("  [S] = pocetna    [M] = medustanica    [C] = cilj\n\n");
+        printf("  [S] = pocetna    [M] = medjustanica    [C] = cilj\n\n");
         printf("put:\n  ");
 
-        for(int seg = 0; seg < bt - 1; seg++) {
-            int* seg_put = svi_putevi + seg * n;
-            int  d       = duzine[seg];
-            int  poc     = (seg == 0) ? 0 : 1;
+        for(int i = 0; i < broj_tacaka - 1; i++) {
+            int* trenutni_segment = svi_putevi + i * broj_cvorova;
+            int  duzina_segmenta  = duzine_segmenata[i];
+            int  pocetak_ispisa   = (i == 0) ? 0 : 1;
 
-            for(int i = poc; i < d; i++) {
-                int je_zadnji_u_segmentu = (i == d - 1);
-                int je_zadnji_segment    = (seg == bt - 2);
-                int je_medustanica       = je_zadnji_u_segmentu && !je_zadnji_segment;
+            for(int j = pocetak_ispisa; j < duzina_segmenta; j++) {
+                int je_zadnji_u_segmentu = (j == duzina_segmenta - 1);
+                int je_zadnji_segment    = (i == broj_tacaka - 2);
+                int je_medjustanica       = je_zadnji_u_segmentu && !je_zadnji_segment;
                 int je_cilj              = je_zadnji_u_segmentu && je_zadnji_segment;
-                int je_start             = (seg == 0 && i == 0);
+                int je_start             = (i == 0 && j == 0);
 
                 if(je_start)
-                    printf("[S] %s", g->ime_cvora[seg_put[i]]);
-                else if(je_medustanica)
-                    printf("[M] %s [M]", g->ime_cvora[seg_put[i]]);
+                    printf("[S] %s", g->ime_cvora[trenutni_segment[j]]);
+                else if(je_medjustanica)
+                    printf("[M] %s [M]", g->ime_cvora[trenutni_segment[j]]);
                 else if(je_cilj)
-                    printf("[C] %s", g->ime_cvora[seg_put[i]]);
+                    printf("[C] %s", g->ime_cvora[trenutni_segment[j]]);
                 else
-                    printf("%s", g->ime_cvora[seg_put[i]]);
+                    printf("%s", g->ime_cvora[trenutni_segment[j]]);
 
                 if(!je_cilj) printf(" -> ");
             }
         }
-        printf("\nukupna udaljenost : %d\n", ukupno);
+        printf("\nukupna udaljenost : %d\n", ukupna_udaljenost);
     }
 
-    printf("vrijeme (dijkstra) : %.4f ms\n", 1000.0 * (t2 - t1) / CLOCKS_PER_SEC);
+    printf("vrijeme (dijkstra) : %.4f ms\n", 1000.0 * (kraj_mjerenja - pocetak_mjerenja) / CLOCKS_PER_SEC);
 
     free(svi_putevi);
-    free(duzine);
+    free(duzine_segmenata);
+    free(udaljenosti_segmenata);
     free(udaljenosti);
-    free(dist);
-    free(preth);
+    free(prethodni);
     free(put);
 }
-
-/* ================================================
-   DIO 3: MJERENJE VREMENA
-   - 5 mjerenja po grafu
-   - odvojeno: bez medustanica i sa medustanicama
-   ================================================ */
 
 void mjeri_vremena(graf* mape[9]) {
     printf("\n================================================\n");
@@ -421,83 +377,66 @@ void mjeri_vremena(graf* mape[9]) {
 
     srand(42);
 
-    /* --- bez medustanica --- */
-    printf("BEZ MEDUSTANICA (prosjek 5 mjerenja):\n");
+    printf("BEZ MEDJUSTANICA (prosjek 5 mjerenja):\n");
     printf("%-35s | cvorovi | gust. | prosjek (ms)\n", "graf");
     printf("----------------------------------------------------------\n");
 
-    for(int g = 0; g < 9; g++) {
-        graf* gr = mape[g];
-        int* dist  = (int*)malloc(gr->broj_cvorova * sizeof(int));
-        int* preth = (int*)malloc(gr->broj_cvorova * sizeof(int));
-        double ukupno_ms = 0.0;
+    for(int i = 0; i < 9; i++) {
+        graf* trenutni_graf = mape[i];
+        int* udaljenosti = (int*)malloc(trenutni_graf->broj_cvorova * sizeof(int));
+        int* prethodni   = (int*)malloc(trenutni_graf->broj_cvorova * sizeof(int));
+        double ukupno_milisekundi = 0.0;
 
-        for(int m = 0; m < 5; m++) {
-            int src = rand() % gr->broj_cvorova;
-            clock_t t1 = clock();
-            dijkstra(gr, src, dist, preth);
-            clock_t t2 = clock();
-            ukupno_ms += 1000.0 * (t2 - t1) / CLOCKS_PER_SEC;
+        for(int j = 0; j < 5; j++) {
+            int nasumicni_polazni = rand() % trenutni_graf->broj_cvorova;
+            clock_t pocetak_mjerenja = clock();
+            dijkstra(trenutni_graf, nasumicni_polazni, udaljenosti, prethodni);
+            clock_t kraj_mjerenja = clock();
+            ukupno_milisekundi += 1000.0 * (kraj_mjerenja - pocetak_mjerenja) / CLOCKS_PER_SEC;
         }
 
         printf("%-35s | %7d | %5.1f | %.4f ms\n",
-               gr->naziv, gr->broj_cvorova, gr->gustina, ukupno_ms / 5.0);
+               trenutni_graf->naziv, trenutni_graf->broj_cvorova, trenutni_graf->gustina, ukupno_milisekundi / 5.0);
 
-        free(dist);
-        free(preth);
+        free(udaljenosti);
+        free(prethodni);
     }
 
-    /* --- sa medustanicama (1 medustanica) --- */
-    printf("\nSA MEDUSTANICAMA (1 medustanica, prosjek 5 mjerenja):\n");
+    printf("\nSA MEDJUSTANICAMA (1 medjustanica, prosjek 5 mjerenja):\n");
     printf("%-35s | cvorovi | gust. | prosjek (ms)\n", "graf");
     printf("----------------------------------------------------------\n");
 
-    for(int g = 0; g < 9; g++) {
-        graf* gr = mape[g];
-        int* dist  = (int*)malloc(gr->broj_cvorova * sizeof(int));
-        int* preth = (int*)malloc(gr->broj_cvorova * sizeof(int));
-        int* put   = (int*)malloc(gr->broj_cvorova * sizeof(int));
-        double ukupno_ms = 0.0;
+    for(int i = 0; i < 9; i++) {
+        graf* trenutni_graf = mape[i];
+        int* udaljenosti = (int*)malloc(trenutni_graf->broj_cvorova * sizeof(int));
+        int* prethodni   = (int*)malloc(trenutni_graf->broj_cvorova * sizeof(int));
+        int* put         = (int*)malloc(trenutni_graf->broj_cvorova * sizeof(int));
+        double ukupno_milisekundi = 0.0;
 
-        for(int m = 0; m < 5; m++) {
-            int src  = rand() % gr->broj_cvorova;
-            int med  = rand() % gr->broj_cvorova;
-            int dst  = rand() % gr->broj_cvorova;
+        for(int j = 0; j < 5; j++) {
+            int nasumicni_polazni    = rand() % trenutni_graf->broj_cvorova;
+            int nasumicna_medjustanica = rand() % trenutni_graf->broj_cvorova;
+            int nasumicno_odrediste  = rand() % trenutni_graf->broj_cvorova;
 
-            clock_t t1 = clock();
-
-            /* src -> med */
-            dijkstra(gr, src, dist, preth);
-            /* med -> dst */
-            dijkstra(gr, med, dist, preth);
-
-            clock_t t2 = clock();
-            ukupno_ms += 1000.0 * (t2 - t1) / CLOCKS_PER_SEC;
+            clock_t pocetak_mjerenja = clock();
+            dijkstra(trenutni_graf, nasumicni_polazni, udaljenosti, prethodni);
+            dijkstra(trenutni_graf, nasumicna_medjustanica, udaljenosti, prethodni);
+            clock_t kraj_mjerenja = clock();
+            ukupno_milisekundi += 1000.0 * (kraj_mjerenja - pocetak_mjerenja) / CLOCKS_PER_SEC;
         }
 
         printf("%-35s | %7d | %5.1f | %.4f ms\n",
-               gr->naziv, gr->broj_cvorova, gr->gustina, ukupno_ms / 5.0);
+               trenutni_graf->naziv, trenutni_graf->broj_cvorova, trenutni_graf->gustina, ukupno_milisekundi / 5.0);
 
-        free(dist);
-        free(preth);
+        free(udaljenosti);
+        free(prethodni);
         free(put);
     }
 
     printf("----------------------------------------------------------\n");
 }
 
-/* ================================================
-   INICIJALIZACIJA 9 MAPA
-   Grupa 1: do 1000 cvorova,      gustine 0.3 / 0.6 / 0.8
-   Grupa 2: 1000-5000 cvorova,    gustine 0.3 / 0.6 / 0.8
-   Grupa 3: 5000-10000 cvorova,   gustine 0.3 / 0.6 / 0.8
-   Napomena: za gustinu 0.8 u grupi 3, broj cvorova je
-   smanjen na 2000 jer bi 8000+ cvorova s gustinom 0.8
-   generisalo desetine miliona grana sto nije izvodljivo.
-   ================================================ */
-
 void inicijalizuj_mape(graf* mape[9]) {
-    /* Grupa 1: do 1000 cvorova, gustine 0.3 / 0.6 / 0.8 */
     printf("  [1/9] pabovi u beogradu...\n");
     mape[0] = kreiraj_graf("Pabovi u Beogradu",    "Pab",   800, 0.3f);
     generisi_grane(mape[0]);
@@ -510,7 +449,6 @@ void inicijalizuj_mape(graf* mape[9]) {
     mape[2] = kreiraj_graf("Restorani u Sarajevu", "Rest",  120, 0.8f);
     generisi_grane(mape[2]);
 
-    /* Grupa 2: 1000-5000 cvorova, gustine 0.3 / 0.6 / 0.8 */
     printf("  [4/9] pabovi u zagrebu...\n");
     mape[3] = kreiraj_graf("Pabovi u Zagrebu",      "Pab",  2800, 0.3f);
     generisi_grane(mape[3]);
@@ -523,9 +461,6 @@ void inicijalizuj_mape(graf* mape[9]) {
     mape[5] = kreiraj_graf("Kafici u Splitu",      "Kafic",4500, 0.8f);
     generisi_grane(mape[5]);
 
-    /* Grupa 3: 5000-10000 cvorova, gustine 0.3 / 0.6 / 0.8
-       Napomena: broj grana je ogranicen na n*15 radi
-       razumnog vremena generisanja i memorije.            */
     printf("  [7/9] kafici u skoplju...\n");
     mape[6] = kreiraj_graf("Kafici u Skoplju",     "Kafic",9400, 0.3f);
     generisi_grane(mape[6]);
@@ -539,21 +474,16 @@ void inicijalizuj_mape(graf* mape[9]) {
     generisi_grane(mape[8]);
 }
 
-/* ================================================
-   MAIN
-   ================================================ */
-
 int main() {
     printf("=== osnove programiranja 2 - projektni zadatak ===\n");
     printf("ucitavanje mapa...\n\n");
 
-    /* niz pokazivaca - sve na heapu, nema stack overflow */
     graf* mape[9];
     inicijalizuj_mape(mape);
 
     printf("\nsve mape ucitane!\n");
 
-    char unos[10];
+    char korisnicki_unos[10];
     while(1) {
         printf("\n================================\n");
         printf("      sistem za navigaciju\n");
@@ -565,34 +495,34 @@ int main() {
         printf("  [m] mjerenje vremena izvrsavanja\n");
         printf("  [0] izlaz\n");
         printf("vas izbor: ");
-        scanf("%s", unos);
+        scanf("%s", korisnicki_unos);
 
-        if(unos[0] == '0') break;
+        if(korisnicki_unos[0] == '0') break;
 
-        if(unos[0] == 'm' || unos[0] == 'M') {
+        if(korisnicki_unos[0] == 'm' || korisnicki_unos[0] == 'M') {
             mjeri_vremena(mape);
             continue;
         }
 
-        int izbor = atoi(unos);
-        if(izbor < 1 || izbor > 9) {
+        int odabrana_mapa = atoi(korisnicki_unos);
+        if(odabrana_mapa < 1 || odabrana_mapa > 9) {
             printf("nevazeci izbor!\n");
             continue;
         }
 
-        graf* g = mape[izbor - 1];
+        graf* odabrani_graf = mape[odabrana_mapa - 1];
 
-        printf("\n--- %s ---\n", g->naziv);
+        printf("\n--- %s ---\n", odabrani_graf->naziv);
         printf("  [1] najkraci put od a do b\n");
-        printf("  [2] najkraci put s medustanicama\n");
+        printf("  [2] najkraci put s medjustanicama\n");
         printf("  [3] povratak\n");
         printf("vas izbor: ");
-        int op;
-        scanf("%d", &op);
+        int odabrana_opcija;
+        scanf("%d", &odabrana_opcija);
 
-        switch(op) {
-            case 1: najkraci_put(g);            break;
-            case 2: najkraci_put_medustanice(g); break;
+        switch(odabrana_opcija) {
+            case 1: najkraci_put(odabrani_graf);            break;
+            case 2: najkraci_put_medjustanice(odabrani_graf); break;
             case 3: break;
             default: printf("nevazeci izbor!\n");
         }
